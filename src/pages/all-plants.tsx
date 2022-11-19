@@ -3,13 +3,18 @@ import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useSession } from "next-auth/react";
-import * as z from "zod";
 
 import { trpc } from "../utils/trpc";
 
 const Home: NextPage = () => {
-  const { data, isLoading } = trpc.plants.getAll.useQuery();
-  const deletePlant = trpc.plants.delete.useMutation();
+  const utils = trpc.useContext();
+
+  const plants = trpc.plants.getAll.useQuery();
+  const deletePlant = trpc.plants.delete.useMutation({
+    onSuccess() {
+      utils.plants.invalidate()
+    }
+  });
 
   const router = useRouter();
   const { status } = useSession({
@@ -32,18 +37,20 @@ const Home: NextPage = () => {
       </Head>
       <main>
         <h1 className="text-5xl">Your plants</h1>
-        {isLoading ? (
+        {plants.isLoading ? (
           <div>Loading...</div>
         ) : (
           <ul>
-            {data?.map((plant) => (
+            {plants.data?.map((plant) => (
               <li key={plant.id}>
                 {plant.name}
-                <button className="mx-4" onClick={ () => {
-                  deletePlant.mutate({id: plant.id})
-                  // router.reload()
-                }}>x</button>
-                </li>
+                <button
+                  className="mx-4"
+                  onClick={() => deletePlant.mutate({ id: plant.id })}
+                >
+                  x
+                </button>
+              </li>
             ))}
           </ul>
         )}

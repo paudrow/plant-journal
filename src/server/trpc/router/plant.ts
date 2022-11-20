@@ -1,15 +1,9 @@
 import { z } from "zod";
+import dayjs from "dayjs";
 
 import { router, publicProcedure } from "../trpc";
 
 export const plantsRouter = router({
-  hello: publicProcedure
-    .input(z.object({ text: z.string().nullish() }).nullish())
-    .query(({ input }) => {
-      return {
-        greeting: `Hello ${input?.text ?? "world"}`,
-      };
-    }),
   getAll: publicProcedure.query(({ ctx }) => {
     return ctx.prisma.plant.findMany({
       where: {
@@ -43,17 +37,13 @@ export const plantsRouter = router({
     .input(
       z.object({
         name: z.string(),
-        initialWateringFrequency: z.number(),
-        lastWateredDate: z.date(),
       })
     )
     .mutation(({ ctx, input }) => {
-      const { name, initialWateringFrequency, lastWateredDate } = input;
+      const { name } = input;
       return ctx.prisma.plant.create({
         data: {
           name,
-          initialWateringFrequency,
-          lastWateredDate,
           user: {
             connect: {
               id: ctx.session?.user?.id,
@@ -61,6 +51,41 @@ export const plantsRouter = router({
           },
         },
       });
+    }),
+  getNextTask: publicProcedure
+    .input(z.object({ plantId: z.string() }))
+    .query(async ({ ctx, input: { plantId } }) => {
+      const plant = await ctx.prisma.plant.findUnique({
+        where: {
+          id: plantId,
+        },
+      });
+      if (!plant) {
+        return null;
+      }
+      const taskRecords = await ctx.prisma.taskRecord.findMany({
+        where: {
+          plantId: plantId,
+          type: "water",
+        },
+        orderBy: {
+          doneDate: "desc",
+        },
+        take: 3,
+      });
+      if (taskRecords.length !== 3) {
+        return null;
+      }
+      const [w1, w2, w3] = taskRecords;
+      const w1ToW2 = dayjs(w1?.doneDate).diff(dayjs(w2?.doneDate), "day");
+      const w2ToW3 = dayjs(w2?.doneDate).diff(dayjs(w3?.doneDate), "day");
+      const averageNumberOfDays = (w1ToW2 + w2ToW3) / 2;
+      const nextWaterDate = dayjs(w1?.doneDate)
+        .add(averageNumberOfDays, "day")
+        .toDate();
+      return {
+        nextWaterDate,
+      };
     }),
   update: publicProcedure
     .input(
@@ -88,7 +113,7 @@ export const plantsRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const { id } = input;
-      await ctx.prisma.task.deleteMany({
+      await ctx.prisma.taskRecord.deleteMany({
         where: {
           plantId: id,
         },

@@ -3,9 +3,9 @@ import { z } from "zod";
 import { router, publicProcedure } from "../trpc";
 import { TaskType } from "../../../types/TaskType";
 
-export const tasksRouter = router({
+export const taskRecordsRouter = router({
   getAll: publicProcedure.query(({ ctx }) => {
-    return ctx.prisma.task.findMany({
+    return ctx.prisma.taskRecord.findMany({
       where: {
         userId: ctx.session?.user?.id,
       },
@@ -14,7 +14,7 @@ export const tasksRouter = router({
   byId: publicProcedure
     .input(z.object({ id: z.string() }))
     .query(({ ctx, input }) => {
-      return ctx.prisma.task.findUnique({
+      return ctx.prisma.taskRecord.findUnique({
         where: {
           id: input.id,
         },
@@ -23,7 +23,7 @@ export const tasksRouter = router({
   getIds: publicProcedure
     .input(z.object({ userId: z.string() }))
     .query(async ({ ctx, input: { userId } }) => {
-      const data = await ctx.prisma.task.findMany({
+      const data = await ctx.prisma.taskRecord.findMany({
         where: {
           userId: userId,
         },
@@ -36,9 +36,12 @@ export const tasksRouter = router({
   getForPlant: publicProcedure
     .input(z.object({ plantId: z.string() }))
     .query(async ({ ctx, input: { plantId } }) => {
-      return await ctx.prisma.task.findMany({
+      return await ctx.prisma.taskRecord.findMany({
         where: {
           plantId: plantId,
+        },
+        orderBy: {
+          doneDate: "desc",
         },
       });
     }),
@@ -48,16 +51,16 @@ export const tasksRouter = router({
       z.object({
         type: TaskType,
         plantId: z.string(),
-        dueDate: z.date(),
+        doneDate: z.date(),
         status: z.string(),
       })
     )
     .mutation(({ ctx, input }) => {
-      const { type, dueDate, status } = input;
-      return ctx.prisma.task.create({
+      const { type, doneDate: doneDate, status } = input;
+      return ctx.prisma.taskRecord.create({
         data: {
           type,
-          dueDate,
+          doneDate,
           status,
           plant: {
             connect: {
@@ -80,7 +83,7 @@ export const tasksRouter = router({
     )
     .mutation(({ ctx, input }) => {
       const { id } = input;
-      return ctx.prisma.task.delete({
+      return ctx.prisma.taskRecord.delete({
         where: {
           id,
         },

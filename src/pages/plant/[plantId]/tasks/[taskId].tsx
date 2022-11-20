@@ -6,6 +6,7 @@ import { trpc } from "../../../../utils/trpc";
 type Task = RouterOutputs["taskRecord"]["byId"];
 
 function TaskItem(props: { task: Task }) {
+  const utils = trpc.useContext();
   const { task } = props;
   if (!task) {
     return <NextError statusCode={404} />;
@@ -22,7 +23,7 @@ function TaskItem(props: { task: Task }) {
 }
 
 const TasksViewPage = () => {
-  const id = useRouter().query.taskId as string;
+  const id = useRouter().query.id as string;
   const postQuery = trpc.taskRecord.byId.useQuery({ id });
 
   if (postQuery.error) {

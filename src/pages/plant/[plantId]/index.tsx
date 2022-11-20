@@ -7,7 +7,7 @@ import { TASK_TYPES } from "../../../types/TaskType";
 import dayjs from "dayjs";
 
 type Plant = RouterOutputs["plants"]["byId"];
-type CreateTask = RouterInputs["tasks"]["create"];
+type CreateTask = RouterInputs["taskRecord"]["create"];
 
 function PlantItem(props: { plant: Plant }) {
   const { plant } = props;
@@ -17,12 +17,23 @@ function PlantItem(props: { plant: Plant }) {
 
   const utils = trpc.useContext();
   const mutatePlant = trpc.plants.update.useMutation();
-  const createTasks = trpc.tasks.create.useMutation({
+  const queryNextTask = trpc.plants.getNextTask.useQuery({ plantId: plant.id });
+  const createTasks = trpc.taskRecord.create.useMutation({
     onSuccess: () => {
-      utils.tasks.invalidate();
+      utils.taskRecord.invalidate();
+      utils.plants.getNextTask.invalidate();
     },
   });
-  const queryTasks = trpc.tasks.getForPlant.useQuery({ plantId: plant.id });
+  const queryTasks = trpc.taskRecord.getForPlant.useQuery({
+    plantId: plant.id,
+  });
+
+  const deleteTask = trpc.taskRecord.delete.useMutation({
+    onSuccess: () => {
+      utils.taskRecord.invalidate();
+      utils.plants.getNextTask.invalidate();
+    },
+  });
 
   return (
     <>
@@ -60,7 +71,18 @@ function PlantItem(props: { plant: Plant }) {
       <h2>Raw data:</h2>
       <pre>{JSON.stringify(plant, null, 4)}</pre>
 
-      <h2 className="text-4xl">Tasks</h2>
+      <h2 className="text-4xl">Upcoming Tasks</h2>
+      {queryNextTask.status === "success" && queryNextTask.data ? (
+        <div>
+          <em>
+            Due {dayjs(queryNextTask.data.nextWaterDate).format("MMMM D, YYYY")}
+          </em>
+        </div>
+      ) : (
+        <div>No upcoming tasks</div>
+      )}
+
+      <h2 className="text-4xl">Record</h2>
       <form
         onSubmit={async (e) => {
           e.preventDefault();
@@ -68,7 +90,7 @@ function PlantItem(props: { plant: Plant }) {
           const values = Object.fromEntries(new FormData($form));
           const createProps: CreateTask = {
             status: "pending",
-            dueDate: dayjs(values.dueDate as string).toDate(),
+            doneDate: dayjs(values.dueDate as string).toDate(),
             plantId: plant.id,
             type: values.type as TaskType,
           };
@@ -109,7 +131,21 @@ function PlantItem(props: { plant: Plant }) {
         <ul>
           {queryTasks.data?.map((task) => (
             <li key={task.id}>
-              <a href={`/plant/${plant.id}/task/${task.id}`}>{task.type} - Due: {task.dueDate.toDateString()}</a>
+              <a href={`/plant/${plant.id}/task/${task.id}`}>
+                {task.type} - Done: {task.doneDate.toDateString()}
+              </a>
+              {' - '}
+              <button
+                onClick={async () => {
+                  try {
+                    await deleteTask.mutateAsync({id: task.id});
+                    utils.taskRecord.invalidate();
+                  } catch (cause) {
+                    console.error({ cause }, "Failed to delete task");
+                  }
+                }}>
+                  x
+              </button>
             </li>
           ))}
         </ul>

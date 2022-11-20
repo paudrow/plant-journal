@@ -17,6 +17,28 @@ export const plantsRouter = router({
       },
     });
   }),
+  byId: publicProcedure
+    .input(z.object({ id: z.string() }))
+    .query(({ ctx, input }) => {
+      return ctx.prisma.plant.findUnique({
+        where: {
+          id: input.id,
+        },
+      });
+    }),
+  getIds: publicProcedure
+    .input(z.object({ userId: z.string() }))
+    .query(async ({ ctx, input: { userId } }) => {
+      const data = await ctx.prisma.plant.findMany({
+        where: {
+          userId: userId,
+        },
+        select: {
+          id: true,
+        },
+      });
+      return data.map((d) => d.id);
+    }),
   create: publicProcedure
     .input(
       z.object({

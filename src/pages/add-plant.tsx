@@ -1,17 +1,19 @@
 import { type NextPage } from "next";
 import Head from "next/head";
-import Link from "next/link";
 import { useRouter } from "next/router";
 import { useSession } from "next-auth/react";
-import * as z from "zod";
 
 import { trpc } from "../utils/trpc";
+import type { inferProcedureInput } from "@trpc/server";
+import type { AppRouter } from "../server/trpc/router/_app";
+
+type CreateProps = inferProcedureInput<AppRouter["plants"]["create"]>;
 
 const Home: NextPage = () => {
   const createPlant = trpc.plants.create.useMutation();
 
   const router = useRouter();
-  const { data: sessionData, status } = useSession({
+  const { status } = useSession({
     required: true,
     onUnauthenticated() {
       router.push("/");
@@ -22,30 +24,6 @@ const Home: NextPage = () => {
     return <div>Loading...</div>;
   }
 
-  const handleSubmit = async (e: React.SyntheticEvent) => {
-    e.preventDefault();
-    const {
-      currentTarget: {
-        name: { value: name },
-      },
-    } = z
-      .object({
-        currentTarget: z.object({
-          name: z.object({
-            value: z.string(),
-          }),
-        }),
-      })
-      .parse(e);
-    console.log(name);
-    if (!sessionData.user) {
-      return;
-    }
-    createPlant.mutate({
-      name,
-    });
-  };
-
   return (
     <>
       <Head>
@@ -55,7 +33,22 @@ const Home: NextPage = () => {
       </Head>
       <main>
         <h1 className="text-5xl">Add plant</h1>
-        <form onSubmit={handleSubmit}>
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            const $form = e.currentTarget;
+            const values = Object.fromEntries(new FormData($form));
+            const createProps: CreateProps = {
+              name: values.name as string,
+            };
+            try {
+              await createPlant.mutateAsync(createProps);
+              $form.reset();
+            } catch (cause) {
+              console.error({ cause }, "Failed to add post");
+            }
+          }}
+        >
           <label htmlFor="name">Plant Name</label>
           <input
             type="text"

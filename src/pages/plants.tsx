@@ -43,7 +43,7 @@ const Home: NextPage = () => {
           <ul>
             {plants.data?.map((plant) => (
               <li key={plant.id}>
-                {plant.name}
+                <Link href={`/plant/${plant.id}`}>{plant.name}</Link>
                 <button
                   className="mx-4"
                   onClick={() => deletePlant.mutate({ id: plant.id })}

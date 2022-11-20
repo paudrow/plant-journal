@@ -43,13 +43,17 @@ export const plantsRouter = router({
     .input(
       z.object({
         name: z.string(),
+        initialWateringFrequency: z.number(),
+        lastWateredDate: z.date(),
       })
     )
     .mutation(({ ctx, input }) => {
-      const { name } = input;
+      const { name, initialWateringFrequency, lastWateredDate } = input;
       return ctx.prisma.plant.create({
         data: {
           name,
+          initialWateringFrequency,
+          lastWateredDate,
           user: {
             connect: {
               id: ctx.session?.user?.id,
@@ -82,9 +86,14 @@ export const plantsRouter = router({
         id: z.string(),
       })
     )
-    .mutation(({ ctx, input }) => {
+    .mutation(async ({ ctx, input }) => {
       const { id } = input;
-      return ctx.prisma.plant.delete({
+      await ctx.prisma.task.deleteMany({
+        where: {
+          plantId: id,
+        },
+      });
+      await ctx.prisma.plant.delete({
         where: {
           id,
         },

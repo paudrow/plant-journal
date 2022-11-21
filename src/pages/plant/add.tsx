@@ -2,7 +2,6 @@ import { type NextPage } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { useSession } from "next-auth/react";
-import dayjs from "dayjs";
 
 import { trpc } from "../../utils/trpc";
 import type { inferProcedureInput } from "@trpc/server";

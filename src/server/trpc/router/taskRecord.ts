@@ -1,17 +1,17 @@
 import { z } from "zod";
 
-import { router, publicProcedure } from "../trpc";
+import { router, protectedProcedure } from "../trpc";
 import { TaskType } from "../../../types/TaskType";
 
 export const taskRecordsRouter = router({
-  getAll: publicProcedure.query(({ ctx }) => {
+  getAll: protectedProcedure.query(({ ctx }) => {
     return ctx.prisma.taskRecord.findMany({
       where: {
         userId: ctx.session?.user?.id,
       },
     });
   }),
-  byId: publicProcedure
+  byId: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(({ ctx, input }) => {
       return ctx.prisma.taskRecord.findUnique({
@@ -20,7 +20,7 @@ export const taskRecordsRouter = router({
         },
       });
     }),
-  getIds: publicProcedure
+  getIds: protectedProcedure
     .input(z.object({ userId: z.string() }))
     .query(async ({ ctx, input: { userId } }) => {
       const data = await ctx.prisma.taskRecord.findMany({
@@ -33,7 +33,7 @@ export const taskRecordsRouter = router({
       });
       return data.map((d) => d.id);
     }),
-  getForPlant: publicProcedure
+  getForPlant: protectedProcedure
     .input(z.object({ plantId: z.string() }))
     .query(async ({ ctx, input: { plantId } }) => {
       return await ctx.prisma.taskRecord.findMany({
@@ -46,7 +46,7 @@ export const taskRecordsRouter = router({
       });
     }),
 
-  create: publicProcedure
+  create: protectedProcedure
     .input(
       z.object({
         type: TaskType,
@@ -75,7 +75,7 @@ export const taskRecordsRouter = router({
         },
       });
     }),
-  delete: publicProcedure
+  delete: protectedProcedure
     .input(
       z.object({
         id: z.string(),

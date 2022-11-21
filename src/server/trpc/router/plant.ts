@@ -1,17 +1,17 @@
 import { z } from "zod";
 import dayjs from "dayjs";
 
-import { router, publicProcedure } from "../trpc";
+import { router, publicProcedure, protectedProcedure } from "../trpc";
 
 export const plantsRouter = router({
-  getAll: publicProcedure.query(({ ctx }) => {
+  getAll: protectedProcedure.query(({ ctx }) => {
     return ctx.prisma.plant.findMany({
       where: {
         userId: ctx.session?.user?.id,
       },
     });
   }),
-  byId: publicProcedure
+  byId: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(({ ctx, input }) => {
       return ctx.prisma.plant.findUnique({
@@ -20,7 +20,7 @@ export const plantsRouter = router({
         },
       });
     }),
-  getIds: publicProcedure
+  getIds: protectedProcedure
     .input(z.object({ userId: z.string() }))
     .query(async ({ ctx, input: { userId } }) => {
       const data = await ctx.prisma.plant.findMany({
@@ -33,7 +33,7 @@ export const plantsRouter = router({
       });
       return data.map((d) => d.id);
     }),
-  create: publicProcedure
+  create: protectedProcedure
     .input(
       z.object({
         name: z.string(),
@@ -52,7 +52,7 @@ export const plantsRouter = router({
         },
       });
     }),
-  getNextTask: publicProcedure
+  getNextTask: protectedProcedure
     .input(z.object({ plantId: z.string() }))
     .query(async ({ ctx, input: { plantId } }) => {
       const plant = await ctx.prisma.plant.findUnique({
@@ -105,7 +105,7 @@ export const plantsRouter = router({
         },
       });
     }),
-  delete: publicProcedure
+  delete: protectedProcedure
     .input(
       z.object({
         id: z.string(),

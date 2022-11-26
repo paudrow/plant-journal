@@ -1,10 +1,10 @@
 import NextError from "next/error";
 import { useRouter } from "next/router";
 import { useS3Upload } from 'next-s3-upload';
-import type { RouterInputs, RouterOutputs } from "../../../utils/trpc";
-import { trpc } from "../../../utils/trpc";
-import type { TaskType } from "../../../types/TaskType";
-import { TASK_TYPES } from "../../../types/TaskType";
+import type { RouterInputs, RouterOutputs } from "../../../../utils/trpc";
+import { trpc } from "../../../../utils/trpc";
+import type { TaskType } from "../../../../types/TaskType";
+import { TASK_TYPES } from "../../../../types/TaskType";
 import dayjs from "dayjs";
 
 type Plant = RouterOutputs["plants"]["byId"];

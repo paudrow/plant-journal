@@ -1,7 +1,7 @@
 import NextError from "next/error";
 import { useRouter } from "next/router";
-import type { RouterOutputs } from "../../../../utils/trpc";
-import { trpc } from "../../../../utils/trpc";
+import type { RouterOutputs } from "../../../../../utils/trpc";
+import { trpc } from "../../../../../utils/trpc";
 
 type Task = RouterOutputs["taskRecord"]["byId"];
 

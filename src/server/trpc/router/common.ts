@@ -1,6 +1,5 @@
 import { z } from "zod";
 import * as AWS from "aws-sdk";
-import { router, protectedProcedure } from "../trpc";
 
 AWS.config.update({
   accessKeyId: process.env.S3_UPLOAD_KEY,

@@ -3,7 +3,7 @@ import dayjs from "dayjs";
 
 import { router, publicProcedure, protectedProcedure } from "../trpc";
 
-export const plantsRouter = router({
+export const plantRouter = router({
   getAll: protectedProcedure.query(({ ctx }) => {
     return ctx.prisma.plant.findMany({
       where: {
@@ -37,13 +37,15 @@ export const plantsRouter = router({
     .input(
       z.object({
         name: z.string(),
+        imageUrl: z.string().optional(),
       })
     )
     .mutation(({ ctx, input }) => {
-      const { name } = input;
+      const { name, imageUrl } = input;
       return ctx.prisma.plant.create({
         data: {
           name,
+          imageUrl,
           user: {
             connect: {
               id: ctx.session?.user?.id,
@@ -92,16 +94,38 @@ export const plantsRouter = router({
       z.object({
         id: z.string(),
         name: z.string(),
-      })
+        imageUrl: z.string()
+      }).partial()
     )
     .mutation(({ ctx, input }) => {
-      const { id, name } = input;
+      const { id, name, imageUrl } = input;
       return ctx.prisma.plant.update({
         where: {
           id,
         },
         data: {
-          name,
+          ...(name && { name }),
+          ...(imageUrl && { imageUrl }),
+        },
+      });
+    }),
+  removeImage: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ ctx, input: { id } }) => {
+      const plant = await ctx.prisma.plant.findUnique({
+        where: {
+          id,
+        },
+      });
+      if (!plant) {
+        return null;
+      }
+      return ctx.prisma.plant.update({
+        where: {
+          id,
+        },
+        data: {
+          imageUrl: null,
         },
       });
     }),

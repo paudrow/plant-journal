@@ -1,5 +1,6 @@
 import NextError from "next/error";
 import { useRouter } from "next/router";
+import { useS3Upload } from 'next-s3-upload';
 import type { RouterInputs, RouterOutputs } from "../../../utils/trpc";
 import { trpc } from "../../../utils/trpc";
 import type { TaskType } from "../../../types/TaskType";
@@ -7,9 +8,13 @@ import { TASK_TYPES } from "../../../types/TaskType";
 import dayjs from "dayjs";
 
 type Plant = RouterOutputs["plants"]["byId"];
+type UpdatePlant = RouterInputs["plants"]["update"];
 type CreateTask = RouterInputs["taskRecord"]["create"];
 
 function PlantItem(props: { plant: Plant }) {
+
+  const { FileInput, openFileDialog, uploadToS3 } = useS3Upload();
+
   const { plant } = props;
   if (!plant) {
     return <NextError statusCode={404} />;
@@ -17,6 +22,11 @@ function PlantItem(props: { plant: Plant }) {
 
   const utils = trpc.useContext();
   const mutatePlant = trpc.plants.update.useMutation();
+  const removePlantImage = trpc.plants.removeImage.useMutation({
+    onSuccess() {
+      utils.plants.invalidate();
+    },
+  });
   const queryNextTask = trpc.plants.getNextTask.useQuery({ plantId: plant.id });
   const createTasks = trpc.taskRecord.create.useMutation({
     onSuccess: () => {
@@ -28,6 +38,16 @@ function PlantItem(props: { plant: Plant }) {
     plantId: plant.id,
   });
 
+  const handleFileChange = async (file: File) => {
+    const { url: imageUrl } = await uploadToS3(file);
+    const updateProps: UpdatePlant = {
+      id: plant.id,
+      imageUrl,
+    };
+    await mutatePlant.mutateAsync(updateProps);
+    utils.plants.invalidate();
+  };
+
   const deleteTask = trpc.taskRecord.delete.useMutation({
     onSuccess: () => {
       utils.taskRecord.invalidate();
@@ -38,12 +58,29 @@ function PlantItem(props: { plant: Plant }) {
   return (
     <>
       <h1 className="text-5xl">{plant.name}</h1>
+      <div>
+        <FileInput onChange={handleFileChange} />
+        {plant.imageUrl ? (
+          <div>
+            <img src={plant.imageUrl}/>
+            <button onClick={openFileDialog}>Change image</button>
+            <div />
+            <button
+              onClick={() => removePlantImage.mutateAsync({ id: plant.id })}
+            >
+              Remove photo
+            </button>
+          </div>
+        ) : (
+          <button onClick={openFileDialog}>Add photo</button>
+        )}
+      </div>
       <form
         onSubmit={async (e) => {
           e.preventDefault();
           const $form = e.currentTarget;
           const values = Object.fromEntries(new FormData($form));
-          const updateProps = {
+          const updateProps: UpdatePlant = {
             id: plant.id,
             name: values.name as string,
           };
@@ -134,17 +171,18 @@ function PlantItem(props: { plant: Plant }) {
               <a href={`/plant/${plant.id}/task/${task.id}`}>
                 {task.type} - Done: {task.doneDate.toDateString()}
               </a>
-              {' - '}
+              {" - "}
               <button
                 onClick={async () => {
                   try {
-                    await deleteTask.mutateAsync({id: task.id});
+                    await deleteTask.mutateAsync({ id: task.id });
                     utils.taskRecord.invalidate();
                   } catch (cause) {
                     console.error({ cause }, "Failed to delete task");
                   }
-                }}>
-                  x
+                }}
+              >
+                x
               </button>
             </li>
           ))}

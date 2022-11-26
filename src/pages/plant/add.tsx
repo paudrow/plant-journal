@@ -2,15 +2,19 @@ import { type NextPage } from "next";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { useSession } from "next-auth/react";
+import { useS3Upload } from 'next-s3-upload';
 
 import { trpc } from "../../utils/trpc";
 import type { inferProcedureInput } from "@trpc/server";
 import type { AppRouter } from "../../server/trpc/router/_app";
+import { useState } from "react";
 
 type CreateProps = inferProcedureInput<AppRouter["plants"]["create"]>;
 
 const Home: NextPage = () => {
   const createPlant = trpc.plants.create.useMutation();
+  const [imageUrl, setImageUrl] = useState<string|undefined>();
+  const { FileInput, openFileDialog, uploadToS3 } = useS3Upload();
 
   const router = useRouter();
   const { status } = useSession({
@@ -24,6 +28,11 @@ const Home: NextPage = () => {
     return <div>Loading...</div>;
   }
 
+  const handleFileChange = async (file: File) => {
+    const { url } = await uploadToS3(file);
+    setImageUrl(url);
+  };
+
   return (
     <>
       <Head>
@@ -33,6 +42,11 @@ const Home: NextPage = () => {
       </Head>
       <main>
         <h1 className="text-5xl">Add plant</h1>
+        <div>
+          <FileInput onChange={handleFileChange} />
+          <button onClick={openFileDialog}>Upload file</button>
+          {imageUrl && <img src={imageUrl} />}
+        </div>
         <form
           onSubmit={async (e) => {
             e.preventDefault();
@@ -40,6 +54,7 @@ const Home: NextPage = () => {
             const values = Object.fromEntries(new FormData($form));
             const createProps: CreateProps = {
               name: values.name as string,
+              imageUrl,
             };
             try {
               await createPlant.mutateAsync(createProps);

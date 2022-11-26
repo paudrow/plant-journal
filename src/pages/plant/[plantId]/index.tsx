@@ -37,8 +37,11 @@ function PlantItem(props: { plant: Plant }) {
   const queryTasks = trpc.taskRecord.getForPlant.useQuery({
     plantId: plant.id,
   });
+  const s3DeleteFile = trpc.s3.deleteFile.useMutation();
 
   const handleFileChange = async (file: File) => {
+    const oldUrl = plant.imageUrl;
+
     const { url: imageUrl } = await uploadToS3(file);
     const updateProps: UpdatePlant = {
       id: plant.id,
@@ -46,6 +49,10 @@ function PlantItem(props: { plant: Plant }) {
     };
     await mutatePlant.mutateAsync(updateProps);
     utils.plants.invalidate();
+
+    if (oldUrl) {
+      await s3DeleteFile.mutateAsync({fileUrl: oldUrl});
+    }
   };
 
   const deleteTask = trpc.taskRecord.delete.useMutation({

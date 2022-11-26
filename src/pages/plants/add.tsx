@@ -11,9 +11,11 @@ import { useState } from "react";
 
 type CreateProps = inferProcedureInput<AppRouter["plants"]["create"]>;
 
-const Home: NextPage = () => {
+const AddPlant: NextPage = () => {
+
+  const [imageFile, setImageFile] = useState<File|undefined>();
+
   const createPlant = trpc.plants.create.useMutation();
-  const [imageUrl, setImageUrl] = useState<string|undefined>();
   const { FileInput, openFileDialog, uploadToS3 } = useS3Upload();
 
   const router = useRouter();
@@ -29,8 +31,7 @@ const Home: NextPage = () => {
   }
 
   const handleFileChange = async (file: File) => {
-    const { url } = await uploadToS3(file);
-    setImageUrl(url);
+    setImageFile(file);
   };
 
   return (
@@ -44,8 +45,20 @@ const Home: NextPage = () => {
         <h1 className="text-5xl">Add plant</h1>
         <div>
           <FileInput onChange={handleFileChange} />
-          <button onClick={openFileDialog}>Upload file</button>
-          {imageUrl && <img src={imageUrl} />}
+          {imageFile ? (
+            <div>
+              <img
+                src={URL.createObjectURL(imageFile)}
+                alt="Plant"
+                className="w-64"
+              />
+              <button onClick={openFileDialog}>Change photo</button>
+              <br/>
+              <button onClick={() => setImageFile(undefined)}>Remove photo</button>
+            </div>
+          ): (
+            <button onClick={openFileDialog}>Add photo</button>
+          )}
         </div>
         <form
           onSubmit={async (e) => {
@@ -54,11 +67,12 @@ const Home: NextPage = () => {
             const values = Object.fromEntries(new FormData($form));
             const createProps: CreateProps = {
               name: values.name as string,
-              imageUrl,
+              imageUrl: imageFile && (await uploadToS3(imageFile)).url,
             };
             try {
               await createPlant.mutateAsync(createProps);
               $form.reset();
+              setImageFile(undefined);
             } catch (cause) {
               console.error({ cause }, "Failed to add post");
             }
@@ -80,4 +94,4 @@ const Home: NextPage = () => {
   );
 };
 
-export default Home;
+export default AddPlant;

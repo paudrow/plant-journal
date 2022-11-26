@@ -2,6 +2,7 @@ import { z } from "zod";
 import dayjs from "dayjs";
 
 import { router, publicProcedure, protectedProcedure } from "../trpc";
+import { deleteS3File } from "./common";
 
 export const plantRouter = router({
   getAll: protectedProcedure.query(({ ctx }) => {
@@ -120,7 +121,10 @@ export const plantRouter = router({
       if (!plant) {
         return null;
       }
-      return ctx.prisma.plant.update({
+      if (plant.imageUrl) {
+        await deleteS3File({ fileUrl: plant.imageUrl });
+      }
+      await ctx.prisma.plant.update({
         where: {
           id,
         },
@@ -135,8 +139,18 @@ export const plantRouter = router({
         id: z.string(),
       })
     )
-    .mutation(async ({ ctx, input }) => {
-      const { id } = input;
+    .mutation(async ({ ctx, input: {id} }) => {
+      const plant = await ctx.prisma.plant.findUnique({
+        where: {
+          id,
+        },
+      })
+      if(!plant) {
+        return
+      }
+      if (plant.imageUrl) {
+        await deleteS3File({ fileUrl: plant.imageUrl });
+      }
       await ctx.prisma.taskRecord.deleteMany({
         where: {
           plantId: id,

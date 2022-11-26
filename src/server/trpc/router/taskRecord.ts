@@ -3,7 +3,7 @@ import { z } from "zod";
 import { router, protectedProcedure } from "../trpc";
 import { TaskType } from "../../../types/TaskType";
 
-export const taskRecordsRouter = router({
+export const taskRecordRouter = router({
   getAll: protectedProcedure.query(({ ctx }) => {
     return ctx.prisma.taskRecord.findMany({
       where: {

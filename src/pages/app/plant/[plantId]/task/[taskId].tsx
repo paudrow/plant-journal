@@ -2,6 +2,8 @@ import NextError from "next/error";
 import { useRouter } from "next/router";
 import type { RouterOutputs } from "../../../../../utils/trpc";
 import { trpc } from "../../../../../utils/trpc";
+import { useSession } from "next-auth/react";
+import AppLayout from "../../../../../components/AppLayout";
 
 type Task = RouterOutputs["taskRecord"]["byId"];
 
@@ -11,13 +13,13 @@ function TaskItem(props: { task: Task }) {
     return <NextError statusCode={404} />;
   }
   return (
-    <>
+    <AppLayout title={`${task.type.toLocaleUpperCase()} task`}>
       <h1>{task.type}</h1>
       <em>Created {task.createdAt.toLocaleDateString("en-us")}</em>
 
       <h2>Raw data:</h2>
       <pre>{JSON.stringify(task, null, 4)}</pre>
-    </>
+    </AppLayout>
   );
 }
 

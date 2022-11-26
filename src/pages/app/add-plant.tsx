@@ -1,8 +1,7 @@
 import { type NextPage } from "next";
 import Head from "next/head";
-import { useRouter } from "next/router";
-import { useSession } from "next-auth/react";
 import { useS3Upload } from 'next-s3-upload';
+import AppLayout from "../../components/AppLayout";
 
 import { trpc } from "../../utils/trpc";
 import type { inferProcedureInput } from "@trpc/server";
@@ -18,24 +17,12 @@ const AddPlant: NextPage = () => {
   const createPlant = trpc.plants.create.useMutation();
   const { FileInput, openFileDialog, uploadToS3 } = useS3Upload();
 
-  const router = useRouter();
-  const { status } = useSession({
-    required: true,
-    onUnauthenticated() {
-      router.push("/");
-    },
-  });
-
-  if (status === "loading") {
-    return <div>Loading...</div>;
-  }
-
   const handleFileChange = async (file: File) => {
     setImageFile(file);
   };
 
   return (
-    <>
+    <AppLayout title="Add a plant!">
       <Head>
         <title>Add plant</title>
         <meta name="description" content="Add a plant" />
@@ -90,7 +77,7 @@ const AddPlant: NextPage = () => {
           <button type="submit">Submit</button>
         </form>
       </main>
-    </>
+    </AppLayout>
   );
 };
 

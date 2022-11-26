@@ -6,6 +6,7 @@ import { trpc } from "../../../../utils/trpc";
 import type { TaskType } from "../../../../types/TaskType";
 import { TASK_TYPES } from "../../../../types/TaskType";
 import dayjs from "dayjs";
+import AppLayout from "../../../../components/AppLayout";
 
 type Plant = RouterOutputs["plants"]["byId"];
 type UpdatePlant = RouterInputs["plants"]["update"];
@@ -63,7 +64,7 @@ function PlantItem(props: { plant: Plant }) {
   });
 
   return (
-    <>
+    <AppLayout title={plant.name}>
       <h1 className="text-5xl">{plant.name}</h1>
       <div>
         <FileInput onChange={handleFileChange} />
@@ -175,7 +176,7 @@ function PlantItem(props: { plant: Plant }) {
         <ul>
           {queryTasks.data?.map((task) => (
             <li key={task.id}>
-              <a href={`/plant/${plant.id}/task/${task.id}`}>
+              <a href={`/app/plant/${plant.id}/task/${task.id}`}>
                 {task.type} - Done: {task.doneDate.toDateString()}
               </a>
               {" - "}
@@ -195,7 +196,7 @@ function PlantItem(props: { plant: Plant }) {
           ))}
         </ul>
       )}
-    </>
+    </AppLayout>
   );
 }
 
